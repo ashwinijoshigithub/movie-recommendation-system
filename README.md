@@ -3,12 +3,11 @@
 Recommend movies to users based on different collaborative filtering approaches.
 
 This project used MovieLens - 100K dataset for predictions.
-Link to dataset: http://grouplens.org/datasets/movielens/100k/
+Link to dataset: http://grouplens.org/datasets/movielens/100k/ <br />
 Information about the dataset can be found here: http://files.grouplens.org/datasets/movielens/ml-100k-README.txt
 
-In order to run the code, the python file should be stored in the same folder where the dataset resides.
-Command for running code:
->> python main.py - -data - -item
+In order to run code, run the following:
+python3 main.py --data='/path/to/u.data/' --item='/path/to/u/item/'
 
 --data expects path to u.data file in the movie - lens dataset.
 u.data: The full u data set, 100000 ratings by 943 users on 1682 items. his is a tab separated list of
