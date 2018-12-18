@@ -21,7 +21,7 @@ Children's | Comedy | Crime | Documentary | Drama | Fantasy |
 Film - Noir | Horror | Musical | Mystery | Romance | Sci - Fi |
 Thriller | War | Western |
 
-Four different output files are generated in the folder 'output_files':<br />
+Three different output files are generated in the folder 'output_files':<br />
 Item - based Cosine(cosine_predictions_item.csv) <br />
 User - based Cosine(cosine_predictions_user.csv) <br />
 SVD(svd_predictions.csv)
