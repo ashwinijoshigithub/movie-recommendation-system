@@ -123,7 +123,7 @@ def main():
     # reading CSV file
     rating_cols = ['user_id', 'movie_id', 'rating', 'unix_timestamp']
     df_data = pd.read_csv(
-        'ml-100k/u.data',
+        args.data,
         sep='\t',
         names=rating_cols,
         encoding='latin-1')
@@ -134,7 +134,7 @@ def main():
 
     # mapping movie id to movie name
     df_item = pd.read_csv(
-        'ml-100k/u.item',
+        args.item,
         sep='|',
         header=None,
         usecols=[
