@@ -24,5 +24,5 @@ Thriller | War | Western |
 Three different output files are generated in the folder 'output_files':<br />
 Item-based Cosine(cosine_predictions_item.csv) <br />
 User-based Cosine(cosine_predictions_user.csv) <br />
-SVD (svd_predictions.csv)
-
+SVD (svd_predictions.csv) <br />
+NMF (mnf_predictions.csv)
