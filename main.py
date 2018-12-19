@@ -92,6 +92,29 @@ def predict_topk_nobias(ratings, similarity, kind='user', k=40):
     return pred
 
 
+# Matrix factorization with Regularization Approach for Model Based CF from scratch
+def matrix_factorization(R, P, Q, K=19, steps=10, alpha=0.0002, beta=0.02):
+    Q = Q.T
+    for step in range(steps):
+        for i in range(len(R)):
+            for j in range(len(R[i])):
+                if R[i][j] > 0:
+                    eij = R[i][j] - np.dot(P[i,:],Q[:,j])
+                    for k in range(K):
+                        P[i][k] = P[i][k] + alpha * (2 * eij * Q[k][j] - beta * P[i][k])
+                        Q[k][j] = Q[k][j] + alpha * (2 * eij * P[i][k] - beta * Q[k][j])
+        e = 0
+        for i in range(len(R)):
+            for j in range(len(R[i])):
+                if R[i][j] > 0:
+                    e = e + pow(R[i][j] - np.dot(P[i,:],Q[:,j]), 2)
+                    for k in range(K):
+                        e = e + (beta/2) * (pow(P[i][k],2) + pow(Q[k][j],2))
+        if e < 0.001:
+            break
+    return P, Q.T
+
+
 def get_rmse(pred, actual):
     '''
     Function to calculate RMSE between predicted and actual values
@@ -148,21 +171,20 @@ def main():
     for row in df_data.itertuples():
         ratings[row[1] - 1, row[2] - 1] = row[3]
 
-    # split into train and test
-    train_data_matrix, test_data_matrix = train_test_split(ratings)
+    ratings = ratings
 
     # Cosine Similarity
 
     # user-user
-    user_similarity = pairwise_distances_scratch(train_data_matrix)
+    user_similarity = pairwise_distances_scratch(ratings)
     # item-item
-    item_similarity = pairwise_distances_scratch(train_data_matrix.T,)
+    item_similarity = pairwise_distances_scratch(ratings.T,)
 
     # prediction- both item and user using function defined
     item_prediction = predict_topk_nobias(
-        train_data_matrix, item_similarity, kind='item', k=15)
+        ratings, item_similarity, kind='item', k=15)
     user_prediction = predict_topk_nobias(
-        train_data_matrix, user_similarity, kind='user', k=50)
+        ratings, user_similarity, kind='user', k=50)
 
     # Scaling the ratings of movies in range 1 to 5
     # which were normalized while removing bias
@@ -196,37 +218,10 @@ def main():
             top_predictions_cosine_user[i][k] = df_movie[j][1]
             k = k + 1
 
-    # writing to csv file
-
-    # Create output directory
-    Path('./output_files').mkdir(parents=True, exist_ok=True)
-
-    heading_list = []
-    heading_list.append('User ID')
-    heading_list.append('Movie 1')
-    heading_list.append('Movie 2')
-    heading_list.append('Movie 3')
-    heading_list.append('Movie 4')
-    heading_list.append('Movie 5')
-
-    print('Item-based RMSE: ' + str(get_rmse(item_prediction, test_data_matrix)))
-    # item-item predictions
-    with open('./output_files/cosine_predictions_item.csv', 'w') as myfile:
-        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-        wr.writerow(heading_list)
-        wr.writerows(top_predictions_cosine)
-
-    print('User-based RMSE: ' + str(get_rmse(user_prediction, test_data_matrix)))
-    # user-user predictions
-    with open('./output_files/cosine_predictions_user.csv', 'w') as myfile:
-        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-        wr.writerow(heading_list)
-        wr.writerows(top_predictions_cosine_user)
-
     # Singular Value Decomposition
 
     # get SVD components from train matrix. Choose k.
-    U, sigma, vT = svds(train_data_matrix, k=19)
+    U, sigma, vT = svds(ratings, k=19)
     s_diag_matrix = np.diag(sigma)
     # prediction using SVD
     svd_pred = np.dot(np.dot(U, s_diag_matrix), vT)
@@ -245,12 +240,67 @@ def main():
             top_predictions_svd[i][k] = df_movie[j][1]
             k = k + 1
 
-    print('SVD RMSE: ' + str(get_rmse(svd_pred, test_data_matrix)))
+    # Regularization - matrix factorization
+
+    # get Matrix components from train matrix. Choose k.
+    R = np.array(ratings)
+    N = len(R)
+    M = len(R[0])
+    K = 19
+    P = np.random.rand(N, K)
+    Q = np.random.rand(M, K)
+
+    nP, nQ = matrix_factorization(R, P, Q)
+    R_pred = np.dot(nP, nQ.T)
+    top_predictions_R = np.empty([n_users, 6], dtype=object)
+    for i in range(0, R_pred.shape[0]):
+        index = R_pred[i].argsort()[-5:][::-1]
+        top_predictions_R[i][0] = i + 1
+        k = 1
+        for j in index:
+            top_predictions_R[i][k] = df_movie[j][1]
+            k = k + 1
+
+    # writing to csv file
+
+    # Create output directory
+    Path('./output_files').mkdir(parents=True, exist_ok=True)
+
+    heading_list = []
+    heading_list.append('User ID')
+    heading_list.append('Movie 1')
+    heading_list.append('Movie 2')
+    heading_list.append('Movie 3')
+    heading_list.append('Movie 4')
+    heading_list.append('Movie 5')
+
+    print('Item-based RMSE: ' + str(get_rmse(item_prediction, ratings)))
+    # item-item predictions
+    with open('./output_files/cosine_predictions_item.csv', 'w') as myfile:
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr.writerow(heading_list)
+        wr.writerows(top_predictions_cosine)
+
+    print('User-based RMSE: ' + str(get_rmse(user_prediction, ratings)))
+    # user-user predictions
+    with open('./output_files/cosine_predictions_user.csv', 'w') as myfile:
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr.writerow(heading_list)
+        wr.writerows(top_predictions_cosine_user)
+
+    print('SVD RMSE: ' + str(get_rmse(svd_pred, ratings)))
     # writing to csv file (SVD)
     with open('./output_files/svd_predictions.csv', 'w') as myfile:
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         wr.writerow(heading_list)
         wr.writerows(top_predictions_svd)
+
+    print('NMF RMSE: ' + str(get_rmse(R_pred, ratings)))
+    #writing to csv file (REG)
+    with open('./output_files/regularization_predictions.csv', 'w') as myfile:
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr.writerow(heading_list)
+        wr.writerows(top_predictions_R)
 
 
 if __name__ == '__main__':
